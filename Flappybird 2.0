@@ -1,0 +1,61 @@
+extends Node2D
+
+const GRAVITY = 800
+const JUMP_SPEED = -300
+const PIPE_SPEED = 200
+const PIPE_GAP = 200
+
+var bird_speed = Vector2()
+var bird = null
+var pipes = []
+var game_over = false
+
+func _ready():
+    bird = $Bird
+    spawn_pipe()
+    set_process(true)
+
+func _process(delta):
+    if game_over:
+        return
+
+    bird_speed.y += GRAVITY * delta
+
+    if bird_speed.y > 500:
+        bird_speed.y = 500
+
+    bird_speed = move_and_slide(bird_speed)
+
+    if bird.position.y > get_viewport_rect().size.y:
+        game_over = true
+        bird_speed = Vector2()
+        $GameOverLabel.show()
+
+    for pipe in pipes:
+        pipe.position.x -= PIPE_SPEED * delta
+
+        if pipe.position.x < -pipe.texture.get_width():
+            pipe.queue_free()
+
+    if pipes.size() < 2:
+        spawn_pipe()
+
+func _input(event):
+    if game_over:
+        return
+
+    if event.is_action_pressed("flap"):
+        bird_speed.y = JUMP_SPEED
+        $FlapSound.play()
+
+func spawn_pipe():
+    var pipe_instance = $Pipe.instance()
+    var pipe_y = randi() % (get_viewport_rect().size.y - PIPE_GAP)
+    pipe_instance.position = Vector2(get_viewport_rect().size.x, pipe_y)
+    pipes.append(pipe_instance)
+    add_child(pipe_instance)
+
+    pipe_instance = $Pipe.instance()
+    pipe_instance.position = Vector2(get_viewport_rect().size.x, pipe_y + PIPE_GAP + pipe_instance.texture.get_height())
+    pipes.append(pipe_instance)
+    add_child(pipe_instance)
